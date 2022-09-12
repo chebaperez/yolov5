@@ -32,6 +32,8 @@ import torch.nn as nn
 import yaml
 from torch.optim import lr_scheduler
 from tqdm import tqdm
+import mlflow
+import re
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -66,6 +68,15 @@ WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))
 
 
 def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictionary
+
+    # Log
+    tags = ['train/box_loss', 'train/obj_loss', 'train/cls_loss', 'metrics/precision', 'metrics/recall', 'metrics/mAP_0.5', 'metrics/mAP_0.5:0.95','val/box_loss', 'val/obj_loss', 'val/cls_loss', 'x/lr0', 'x/lr1', 'x/lr2']
+    for x, tag in zip(list(mloss[:-1]) + list(results) + lr, tags):
+        # existing code (...)
+        tag = re.sub('[^a-zA-Z0-9\/\_\-\. ]', '-', tag)
+        # we remove not allowed characters from the tags.
+        mlflow.log_metric(tag, float(x))
+
     save_dir, epochs, batch_size, weights, single_cls, evolve, data, cfg, resume, noval, nosave, workers, freeze = \
         Path(opt.save_dir), opt.epochs, opt.batch_size, opt.weights, opt.single_cls, opt.evolve, opt.data, opt.cfg, \
         opt.resume, opt.noval, opt.nosave, opt.workers, opt.freeze
@@ -476,6 +487,11 @@ def parse_opt(known=False):
 
 
 def main(opt, callbacks=Callbacks()):
+
+    # mlflow
+    mlflow.set_experiment("/Users/chebaperez@gmail.com/berry_detection")
+    mlflow.start_run()
+
     # Checks
     if RANK in {-1, 0}:
         print_args(vars(opt))
@@ -614,6 +630,8 @@ def main(opt, callbacks=Callbacks()):
         LOGGER.info(f'Hyperparameter evolution finished {opt.evolve} generations\n'
                     f"Results saved to {colorstr('bold', save_dir)}\n"
                     f'Usage example: $ python train.py --hyp {evolve_yaml}')
+
+    mlflow.end_run()
 
 
 def run(**kwargs):
