@@ -489,6 +489,7 @@ def parse_opt(known=False):
 def main(opt, callbacks=Callbacks()):
 
     # mlflow
+    mlflow.set_tracking_uri("databricks")
     mlflow.set_experiment("/Users/chebaperez@gmail.com/berry_detection")
     mlflow.start_run()
 
